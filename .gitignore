@@ -1,0 +1,83 @@
+# Ignore Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+dist/
+*.egg-info/
+.installed.cfg
+pip-wheel-metadata/
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+venv.bak/
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage
+.coverage
+.coverage.*
+.pytest_cache/
+htmlcov/
+.tox/
+.nox/
+
+# Type checkers
+.mypy_cache/
+.pyre/
+.pytype/
+
+# Jupyter
+.ipynb_checkpoints
+
+# IDEs and editors
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# Secrets and env files
+.env
+.env.*
+secrets.json
+
+# Large or generated data — don't upload to Git
+/data/
+data/
+
+# Optional: keep an empty placeholder file tracked
+# If you need to track an empty `data/` folder, create a file like `data/.gitkeep` and remove the above lines or add an exception:
+# !data/.gitkeep
+
+# Misc
+*.egg
+*.whl
+*.tar.gz
+
+# Python cache for wheels
+pip-wheel-metadata/
+
+# Local build artifact directories
+build/
+
+# Coverage reports
+coverage.xml
+
+# Node modules (if any node tooling is used)
+node_modules/
