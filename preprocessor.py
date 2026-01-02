@@ -7,7 +7,10 @@
 # and Machine Learning" course (02360370), Winter 2025
 #
 import multiprocessing
-
+import multiprocessing
+import numpy as np
+import random
+from scipy import ndimage
 
 class Worker(multiprocessing.Process):
     
@@ -29,7 +32,14 @@ class Worker(multiprocessing.Process):
         
         You should add parameters if you think you need to.
         '''
-        raise NotImplementedError("To be implemented")
+        self.jobs = jobs
+        self.result = result
+
+        self.train_x, self.train_y = training_data
+        self.batch_size = batch_size
+
+        random.seed()  
+        np.random.seed()
 
     @staticmethod
     def rotate(image, angle):
@@ -46,7 +56,9 @@ class Worker(multiprocessing.Process):
         ------
         An numpy array of same shape
         '''
-        raise NotImplementedError("To be implemented")
+        img = image.reshape(28, 28)
+        rot = ndimage.rotate(img, angle, reshape=False, order=1, mode='constant', cval=0.0)
+        return rot.reshape(784)
 
     @staticmethod
     def shift(image, dx, dy):
@@ -65,7 +77,9 @@ class Worker(multiprocessing.Process):
         ------
         An numpy array of same shape
         '''
-        raise NotImplementedError("To be implemented")
+        img = image.reshape(28, 28)
+        shifted = ndimage.shift(img, shift=(-dy, -dx), order=1, mode='constant', cval=0.0)
+        return shifted.reshape(784)
     
     @staticmethod
     def add_noise(image, noise):
@@ -84,7 +98,10 @@ class Worker(multiprocessing.Process):
         ------
         An numpy array of same shape
         '''
-        raise NotImplementedError("To be implemented")
+        n = np.random.uniform(-noise, noise, size=image.shape)
+        out = image + n
+        out = np.clip(out, 0.0, 1.0)
+        return out
 
     @staticmethod
     def skew(image, tilt):
@@ -101,7 +118,21 @@ class Worker(multiprocessing.Process):
         ------
         An numpy array of same shape
         '''
-        raise NotImplementedError("To be implemented")
+        img = image.reshape(28, 28)
+        center = (28 - 1) / 2.0  # 13.5
+
+        # mapping output->input:
+        # in_r = r
+        # in_c = c - tilt*(r-center)
+        matrix = np.array([[1.0, 0.0],
+                        [-tilt, 1.0]])
+        offset = np.array([0.0, tilt * center])
+
+        skewed = ndimage.affine_transform(
+            img, matrix=matrix, offset=offset,
+            order=1, mode='constant', cval=0.0
+        )
+        return skewed.reshape(784)
 
     def process_image(self, image):
         '''Apply the image process functions
@@ -116,11 +147,47 @@ class Worker(multiprocessing.Process):
         ------
         An numpy array of same shape
         '''
-        raise NotImplementedError("To be implemented")
+        angle = random.uniform(-15, 15)
+        dx = random.randint(-2, 2)
+        dy = random.randint(-2, 2)
+        noise = random.uniform(0.0, 0.15)
+        tilt = random.uniform(-0.25, 0.25)
+
+        out = image
+        out = self.rotate(out, angle)
+        out = self.shift(out, dx, dy)
+        out = self.skew(out, tilt)
+        out = self.add_noise(out, noise)
+
+        out = np.clip(out, 0.0, 1.0)
+        return out
 
     def run(self):
         '''Process images from the jobs queue and add the result to the result queue.
 		Hint: you can either generate (i.e sample randomly from the training data)
 		the image batches here OR in ip_network.create_batches
         '''
-        raise NotImplementedError("To be implemented")
+        while True:
+            msg = self.jobs.get()
+
+            if msg is None:
+                try:
+                    self.jobs.task_done()
+                except Exception:
+                    pass
+                break
+
+            job_id, indexes = msg
+
+            batch_x = self.train_x[indexes]
+
+            aug_x = np.empty_like(batch_x)
+            for i in range(batch_x.shape[0]):
+                aug_x[i] = self.process_image(batch_x[i])
+
+            self.result.put((job_id, aug_x))
+
+            try:
+                self.jobs.task_done()
+            except Exception:
+                pass
