@@ -58,7 +58,8 @@ Thumbs.db
 secrets.json
 
 # Large or generated data — don't upload to Git
-
+/data/
+data/
 
 # Optional: keep an empty placeholder file tracked
 # If you need to track an empty `data/` folder, create a file like `data/.gitkeep` and remove the above lines or add an exception:
