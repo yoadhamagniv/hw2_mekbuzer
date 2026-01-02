@@ -11,6 +11,7 @@ import multiprocessing
 import random
 from preprocessor import Worker
 from network import *
+from my_queue import MyQueue
 
 class IPNeuralNetwork(NeuralNetwork):
     
@@ -25,7 +26,7 @@ class IPNeuralNetwork(NeuralNetwork):
 
 		# 2. Set jobs
         self.jobs = multiprocessing.JoinableQueue()
-        self.results = multiprocessing.Queue()
+        self.results = MyQueue()
         self.workers = []
 
         for _ in range(n_workers):
