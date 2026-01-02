@@ -24,7 +24,7 @@ class IPNeuralNetwork(NeuralNetwork):
         n_workers = max(1, cpus - 1)
 
 		# 2. Set jobs
-		self.jobs = multiprocessing.JoinableQueue()
+        self.jobs = multiprocessing.JoinableQueue()
         self.results = multiprocessing.Queue()
         self.workers = []
 
