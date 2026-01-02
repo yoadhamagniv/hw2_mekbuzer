@@ -15,16 +15,13 @@ class MyQueue(object):
     def __init__(self):
         ''' Initialize MyQueue and it's members.
         '''
-        # Pipe(duplex=False) -> one end is read-only, one end is write-only
+                # One-direction pipe: recv only + send only
         self._recv_conn, self._send_conn = multiprocessing.Pipe(duplex=False)
 
-        # Writers-many: protect sending so multiple writers won't interleave bytes
-        self._lock = multiprocessing.Lock()
+        # Protect only the send side (many writers)
+        self._send_lock = multiprocessing.Lock()
 
-        # Message counter:
-        # empty() is allowed to be "optimistic empty" while a put is in progress.
-        # We increment only AFTER send_bytes finishes, so empty() becomes False only
-        # when the message is fully sent and put() finished.
+        # Separate lock for the counter (or use _count.get_lock())
         self._count = multiprocessing.Value('i', 0)
 
     def put(self, msg):
@@ -37,8 +34,12 @@ class MyQueue(object):
         '''
         data = pickle.dumps(msg, protocol=pickle.HIGHEST_PROTOCOL)
 
-        with self._lock:
+        # IMPORTANT: lock only around send to avoid interleaving bytes
+        with self._send_lock:
             self._send_conn.send_bytes(data)
+
+        # Increment count ONLY after send completed
+        with self._count.get_lock():
             self._count.value += 1
 
     def get(self):
@@ -48,11 +49,12 @@ class MyQueue(object):
         ------
         An object
         '''
+        # IMPORTANT: do not hold any locks while blocking on recv
         data = self._recv_conn.recv_bytes()
         msg = pickle.loads(data)
 
-        # Decrement count after successful receive
-        with self._lock:
+        # Decrement count after receive
+        with self._count.get_lock():
             self._count.value -= 1
 
         return msg
@@ -64,6 +66,5 @@ class MyQueue(object):
         ------
         A boolean value
         '''
-        # Only reader calls empty(), but we still guard with lock because writers update _count.
-        with self._lock:
+        with self._count.get_lock():
             return self._count.value == 0
